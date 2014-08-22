@@ -24,16 +24,23 @@
                       (map (fn [channel] (vector channel `(<! ~channel))))
                       (mapcat identity)
                       (vec))
-        body (if (= (.indexOf body :error) -1)
-               (conj body :error nil)
-               body)
-        error-index (.indexOf body :error)
-        success-body (first (split-at error-index body))
-        error-body (rest (second (split-at error-index body)))]
+        final-body (if (= (.indexOf body :error) -1)
+                     (concat body [:error nil])
+                     body)
+        error-index (.indexOf final-body :error)
+        success-body (first (split-at error-index final-body))
+        error-body (rest (second (split-at error-index final-body)))]
     `(go (let ~let-forms
            (let [errors# (filter #(instance? Exception %) ~channels)]
              (try
                (if (seq errors#)
-                 ~@error-body
-                 ~@success-body)
+                 (do ~@error-body)
+                 (do ~@success-body))
                (catch Exception e# ~@error-body)))))))
+
+(defmacro let-async
+  [bindings & body]
+  (let [asyncify (fn [[name form]] [name `(do-async ~form)])
+        async-bindings (vec (mapcat identity (map asyncify (partition 2 bindings))))
+        body `(with-collect ~(vec (map first (partition 2 bindings))) ~@body)]
+    `(let ~async-bindings ~body)))
