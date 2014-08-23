@@ -32,11 +32,11 @@
         error-body (rest (second (split-at error-index final-body)))]
     `(go (let ~let-forms
            (let [errors# (filter #(instance? Exception %) ~channels)]
-             (try
                (if (seq errors#)
                  (do ~@error-body)
-                 (do ~@success-body))
-               (catch Exception e# ~@error-body)))))))
+                 (try
+                   (do ~@success-body)
+                   (catch Exception e# ~@error-body))))))))
 
 (defmacro let-async
   [bindings & body]
